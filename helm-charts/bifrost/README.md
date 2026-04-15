@@ -4,9 +4,88 @@
 
 Official Helm charts for deploying [Bifrost](https://github.com/maximhq/bifrost) - a high-performance AI gateway with unified interface for multiple providers.
 
-**Latest Version:** 2.0.2
+**Latest Version:** 2.0.18
 
 ## Changelog
+
+### v2.0.18
+
+- Fixed MCP client config template to correctly map camelCase keys in Helm values:
+  - `toolsToExecute` → `tools_to_execute`
+  - `toolsToAutoExecute` → `tools_to_auto_execute`
+  - `authType` → `auth_type`
+  - `oauthConfigId` → `oauth_config_id`
+
+### v2.0.16
+
+- Fixed disabled custom plugins being completely removed from rendered config.json instead of being kept with `enabled: false`
+
+### v2.0.15
+
+- Added `whitelistedRoutes` client config property for routes that bypass auth middleware
+- Added `whitelistedRoutes` to Helm schema, values, and template rendering
+
+### v2.0.14
+
+- Added `placement` and `order` fields to custom plugin schema and template rendering
+- Added plugin property completeness check to `validate-helm-schema.sh`
+- Added custom plugin placement/order rendering tests to `validate-helm-templates.sh`
+- Added `PluginConfig` struct validation to `validate-go-config-fields.sh`
+
+### v2.0.13
+
+- Added missing client config properties: `asyncJobResultTTL`, `requiredHeaders`, `loggingHeaders`, `allowedHeaders`, `mcpAgentDepth`, `mcpToolExecutionTimeout`, `mcpCodeModeBindingLevel`, `mcpToolSyncInterval`, `hideDeletedVirtualKeysInFilters`
+- Added MCP new fields: top-level `toolSyncInterval`, per-client `clientId`, `isCodeModeClient`, `toolSyncInterval`, `isPingAvailable`, `toolPricing`, and `codeModeBindingLevel` in tool manager config
+- Added governance `modelConfigs` and `providers` top-level properties
+- Added cluster `region` property
+- Added guardrail provider `timeout` field (was missing from schema and template rendering)
+- Fixed `isPingAvailable` rendering bug in `_helpers.tpl` (was using wrong key name)
+- Added `is_ping_available` and `tool_pricing` to `config.schema.json` MCP client config
+- Added new CI script `validate-go-config-fields.sh` for Go struct-to-schema drift detection
+- Expanded all 3 existing CI validation scripts with Gap 1-8 property coverage
+
+### v2.0.12
+
+- Fixed health probe paths to use `/health` instead of `/metrics`
+
+### v2.0.11
+
+- Bumped appVersion to 1.4.11
+
+### v2.0.10
+
+- Added missing plugin config properties from Go implementations:
+  - governance: `required_headers`, `is_enterprise`
+  - logging: `disable_content_logging`, `logging_headers`
+  - otel: `headers`, `tls_ca_cert`, `insecure`
+  - telemetry: `custom_labels`
+
+### v2.0.9
+
+- Bumped appVersion to 1.4.8
+
+### v2.0.8
+
+- Added comprehensive config field coverage for all `config.schema.json` fields
+- Added Pinecone vector store support (external only) with secret injection
+- Added governance routing rules template support
+- Added OTEL metrics fields (metrics_enabled, metrics_endpoint, metrics_push_interval)
+- Added advanced Redis connection pool fields (pool_size, timeouts, idle conns, etc.)
+- Added Weaviate timeout and className fields
+- Expanded values.yaml with commented examples for all provider types (Azure, Vertex, Bedrock), network config, concurrency, proxy config, and governance entities
+- Added helm config field validation CI test (246 assertions covering all config.schema.json fields)
+
+### v2.0.7
+
+- Previous release
+
+### v2.0.6
+
+- Fixes MCP client config template to convert camelCase Helm values to snake_case config format
+
+### v2.0.5
+
+- Fixes config field validation parity
 
 ### v2.0.2
 
@@ -319,6 +398,8 @@ bifrost:
         enabled: true
         path: "/plugins/my-plugin.so"
         version: 1
+        placement: "pre_builtin"  # or "post_builtin" (default)
+        order: 0                  # execution order within placement group
         config:
           key: value
 ```

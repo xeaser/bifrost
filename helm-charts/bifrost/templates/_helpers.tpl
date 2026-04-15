@@ -178,6 +178,16 @@ env.BIFROST_QDRANT_API_KEY
 {{- end -}}
 {{- end -}}
 
+{{- define "bifrost.pinecone.apiKey" -}}
+{{- if .Values.vectorStore.pinecone.external.enabled -}}
+{{- if .Values.vectorStore.pinecone.external.existingSecret -}}
+env.BIFROST_PINECONE_API_KEY
+{{- else -}}
+{{- .Values.vectorStore.pinecone.external.apiKey -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+
 {{- define "bifrost.qdrant.useTls" -}}
 {{- if .Values.vectorStore.qdrant.external.enabled -}}
 {{- .Values.vectorStore.qdrant.external.useTls -}}
@@ -205,8 +215,8 @@ false
 {{- if hasKey .Values.bifrost.client "enableLogging" }}
 {{- $_ := set $client "enable_logging" .Values.bifrost.client.enableLogging }}
 {{- end }}
-{{- if hasKey .Values.bifrost.client "enableGovernance" }}
-{{- $_ := set $client "enable_governance" .Values.bifrost.client.enableGovernance }}
+{{- if hasKey .Values.bifrost.client "enforceAuthOnInference" }}
+{{- $_ := set $client "enforce_auth_on_inference" .Values.bifrost.client.enforceAuthOnInference }}
 {{- end }}
 {{- if hasKey .Values.bifrost.client "enforceGovernanceHeader" }}
 {{- $_ := set $client "enforce_governance_header" .Values.bifrost.client.enforceGovernanceHeader }}
@@ -243,6 +253,36 @@ false
 {{- if or $headerFilter.allowlist $headerFilter.denylist }}
 {{- $_ := set $client "header_filter_config" $headerFilter }}
 {{- end }}
+{{- end }}
+{{- if .Values.bifrost.client.asyncJobResultTTL }}
+{{- $_ := set $client "async_job_result_ttl" .Values.bifrost.client.asyncJobResultTTL }}
+{{- end }}
+{{- if .Values.bifrost.client.requiredHeaders }}
+{{- $_ := set $client "required_headers" .Values.bifrost.client.requiredHeaders }}
+{{- end }}
+{{- if .Values.bifrost.client.loggingHeaders }}
+{{- $_ := set $client "logging_headers" .Values.bifrost.client.loggingHeaders }}
+{{- end }}
+{{- if .Values.bifrost.client.whitelistedRoutes }}
+{{- $_ := set $client "whitelisted_routes" .Values.bifrost.client.whitelistedRoutes }}
+{{- end }}
+{{- if .Values.bifrost.client.allowedHeaders }}
+{{- $_ := set $client "allowed_headers" .Values.bifrost.client.allowedHeaders }}
+{{- end }}
+{{- if .Values.bifrost.client.mcpAgentDepth }}
+{{- $_ := set $client "mcp_agent_depth" .Values.bifrost.client.mcpAgentDepth }}
+{{- end }}
+{{- if .Values.bifrost.client.mcpToolExecutionTimeout }}
+{{- $_ := set $client "mcp_tool_execution_timeout" .Values.bifrost.client.mcpToolExecutionTimeout }}
+{{- end }}
+{{- if .Values.bifrost.client.mcpCodeModeBindingLevel }}
+{{- $_ := set $client "mcp_code_mode_binding_level" .Values.bifrost.client.mcpCodeModeBindingLevel }}
+{{- end }}
+{{- if hasKey .Values.bifrost.client "mcpToolSyncInterval" }}
+{{- $_ := set $client "mcp_tool_sync_interval" .Values.bifrost.client.mcpToolSyncInterval }}
+{{- end }}
+{{- if hasKey .Values.bifrost.client "hideDeletedVirtualKeysInFilters" }}
+{{- $_ := set $client "hide_deleted_virtual_keys_in_filters" .Values.bifrost.client.hideDeletedVirtualKeysInFilters }}
 {{- end }}
 {{- $_ := set $config "client" $client }}
 {{- end }}
@@ -308,6 +348,15 @@ false
 {{- end }}
 {{- $_ := set $governance "virtual_keys" $vks }}
 {{- end }}
+{{- if .Values.bifrost.governance.routingRules }}
+{{- $_ := set $governance "routing_rules" .Values.bifrost.governance.routingRules }}
+{{- end }}
+{{- if .Values.bifrost.governance.modelConfigs }}
+{{- $_ := set $governance "model_configs" .Values.bifrost.governance.modelConfigs }}
+{{- end }}
+{{- if .Values.bifrost.governance.providers }}
+{{- $_ := set $governance "providers" .Values.bifrost.governance.providers }}
+{{- end }}
 {{- if .Values.bifrost.governance.authConfig }}
 {{- $authConfig := dict }}
 {{- if and .Values.bifrost.governance.authConfig.existingSecret .Values.bifrost.governance.authConfig.usernameKey }}
@@ -330,7 +379,7 @@ false
 {{- $_ := set $governance "auth_config" $authConfig }}
 {{- end }}
 {{- end }}
-{{- if or $governance.budgets $governance.rate_limits $governance.customers $governance.teams $governance.virtual_keys $governance.auth_config }}
+{{- if or $governance.budgets $governance.rate_limits $governance.customers $governance.teams $governance.virtual_keys $governance.routing_rules $governance.model_configs $governance.providers $governance.auth_config }}
 {{- $_ := set $config "governance" $governance }}
 {{- end }}
 {{- end }}
@@ -363,6 +412,9 @@ false
 {{- $cluster := dict "enabled" true }}
 {{- if .Values.bifrost.cluster.peers }}
 {{- $_ := set $cluster "peers" .Values.bifrost.cluster.peers }}
+{{- end }}
+{{- if .Values.bifrost.cluster.region }}
+{{- $_ := set $cluster "region" .Values.bifrost.cluster.region }}
 {{- end }}
 {{- if .Values.bifrost.cluster.gossip }}
 {{- $gossip := dict }}
@@ -455,6 +507,7 @@ false
 {{- $providers := list }}
 {{- range .Values.bifrost.guardrails.providers }}
 {{- $provider := dict "id" .id "provider_name" .provider_name "policy_name" .policy_name "enabled" .enabled }}
+{{- if .timeout }}{{- $_ := set $provider "timeout" .timeout }}{{- end }}
 {{- if .config }}{{- $_ := set $provider "config" .config }}{{- end }}
 {{- $providers = append $providers $provider }}
 {{- end }}
@@ -520,6 +573,12 @@ false
 {{- end }}
 {{- $_ := set $weaviateConfig "grpc_config" $grpcConfig }}
 {{- end }}
+{{- if .Values.vectorStore.weaviate.external.timeout }}
+{{- $_ := set $weaviateConfig "timeout" .Values.vectorStore.weaviate.external.timeout }}
+{{- end }}
+{{- if .Values.vectorStore.weaviate.external.className }}
+{{- $_ := set $weaviateConfig "class_name" .Values.vectorStore.weaviate.external.className }}
+{{- end }}
 {{- end }}
 {{- $_ := set $vectorStore "config" $weaviateConfig }}
 {{- else if eq .Values.vectorStore.type "redis" }}
@@ -529,8 +588,53 @@ false
 {{- $_ := set $redisConfig "password" $password }}
 {{- end }}
 {{- if .Values.vectorStore.redis.external.enabled }}
+{{- if .Values.vectorStore.redis.external.username }}
+{{- $_ := set $redisConfig "username" .Values.vectorStore.redis.external.username }}
+{{- end }}
 {{- if .Values.vectorStore.redis.external.database }}
 {{- $_ := set $redisConfig "db" .Values.vectorStore.redis.external.database }}
+{{- end }}
+{{- if .Values.vectorStore.redis.external.poolSize }}
+{{- $_ := set $redisConfig "pool_size" .Values.vectorStore.redis.external.poolSize }}
+{{- end }}
+{{- if .Values.vectorStore.redis.external.maxActiveConns }}
+{{- $_ := set $redisConfig "max_active_conns" .Values.vectorStore.redis.external.maxActiveConns }}
+{{- end }}
+{{- if .Values.vectorStore.redis.external.minIdleConns }}
+{{- $_ := set $redisConfig "min_idle_conns" .Values.vectorStore.redis.external.minIdleConns }}
+{{- end }}
+{{- if .Values.vectorStore.redis.external.maxIdleConns }}
+{{- $_ := set $redisConfig "max_idle_conns" .Values.vectorStore.redis.external.maxIdleConns }}
+{{- end }}
+{{- if .Values.vectorStore.redis.external.connMaxLifetime }}
+{{- $_ := set $redisConfig "conn_max_lifetime" .Values.vectorStore.redis.external.connMaxLifetime }}
+{{- end }}
+{{- if .Values.vectorStore.redis.external.connMaxIdleTime }}
+{{- $_ := set $redisConfig "conn_max_idle_time" .Values.vectorStore.redis.external.connMaxIdleTime }}
+{{- end }}
+{{- if .Values.vectorStore.redis.external.dialTimeout }}
+{{- $_ := set $redisConfig "dial_timeout" .Values.vectorStore.redis.external.dialTimeout }}
+{{- end }}
+{{- if .Values.vectorStore.redis.external.readTimeout }}
+{{- $_ := set $redisConfig "read_timeout" .Values.vectorStore.redis.external.readTimeout }}
+{{- end }}
+{{- if .Values.vectorStore.redis.external.writeTimeout }}
+{{- $_ := set $redisConfig "write_timeout" .Values.vectorStore.redis.external.writeTimeout }}
+{{- end }}
+{{- if .Values.vectorStore.redis.external.contextTimeout }}
+{{- $_ := set $redisConfig "context_timeout" .Values.vectorStore.redis.external.contextTimeout }}
+{{- end }}
+{{- if .Values.vectorStore.redis.external.useTls }}
+{{- $_ := set $redisConfig "use_tls" true }}
+{{- end }}
+{{- if .Values.vectorStore.redis.external.insecureSkipVerify }}
+{{- $_ := set $redisConfig "insecure_skip_verify" true }}
+{{- end }}
+{{- if .Values.vectorStore.redis.external.caCertPem }}
+{{- $_ := set $redisConfig "ca_cert_pem" .Values.vectorStore.redis.external.caCertPem }}
+{{- end }}
+{{- if .Values.vectorStore.redis.external.clusterMode }}
+{{- $_ := set $redisConfig "cluster_mode" true }}
 {{- end }}
 {{- end }}
 {{- $_ := set $vectorStore "config" $redisConfig }}
@@ -547,12 +651,82 @@ false
 {{- $_ := set $qdrantConfig "use_tls" false }}
 {{- end }}
 {{- $_ := set $vectorStore "config" $qdrantConfig }}
+{{- else if eq .Values.vectorStore.type "pinecone" }}
+{{- $pineconeConfig := dict }}
+{{- $apiKey := include "bifrost.pinecone.apiKey" . }}
+{{- if $apiKey }}
+{{- $_ := set $pineconeConfig "api_key" $apiKey }}
+{{- end }}
+{{- if .Values.vectorStore.pinecone.external.indexHost }}
+{{- $_ := set $pineconeConfig "index_host" .Values.vectorStore.pinecone.external.indexHost }}
+{{- end }}
+{{- $_ := set $vectorStore "config" $pineconeConfig }}
 {{- end }}
 {{- $_ := set $config "vector_store" $vectorStore }}
 {{- end }}
 {{- /* MCP */ -}}
 {{- if .Values.bifrost.mcp.enabled }}
-{{- $mcpConfig := dict "client_configs" .Values.bifrost.mcp.clientConfigs }}
+{{- $clientConfigs := list }}
+{{- range $idx, $client := .Values.bifrost.mcp.clientConfigs }}
+{{- $cc := dict "name" $client.name }}
+{{- /* Map connectionType: websocket -> sse, others pass through */ -}}
+{{- if eq $client.connectionType "websocket" }}
+{{- $_ := set $cc "connection_type" "sse" }}
+{{- else }}
+{{- $_ := set $cc "connection_type" $client.connectionType }}
+{{- end }}
+{{- /* Map httpConfig.url / websocketConfig.url -> connection_string */ -}}
+{{- if and (eq $client.connectionType "http") $client.httpConfig }}
+{{- $_ := set $cc "connection_string" $client.httpConfig.url }}
+{{- end }}
+{{- if and (eq $client.connectionType "websocket") $client.websocketConfig }}
+{{- $_ := set $cc "connection_string" $client.websocketConfig.url }}
+{{- end }}
+{{- /* Map stdioConfig -> stdio_config */ -}}
+{{- if $client.stdioConfig }}
+{{- $stdio := dict "command" $client.stdioConfig.command }}
+{{- if $client.stdioConfig.args }}
+{{- $_ := set $stdio "args" $client.stdioConfig.args }}
+{{- end }}
+{{- if $client.stdioConfig.envs }}
+{{- $_ := set $stdio "envs" $client.stdioConfig.envs }}
+{{- end }}
+{{- $_ := set $cc "stdio_config" $stdio }}
+{{- end }}
+{{- /* Pass through fields that are already snake_case or flat */ -}}
+{{- if $client.headers }}
+{{- $_ := set $cc "headers" $client.headers }}
+{{- end }}
+{{- if $client.toolsToExecute }}
+{{- $_ := set $cc "tools_to_execute" $client.toolsToExecute }}
+{{- end }}
+{{- if $client.toolsToAutoExecute }}
+{{- $_ := set $cc "tools_to_auto_execute" $client.toolsToAutoExecute }}
+{{- end }}
+{{- if $client.authType }}
+{{- $_ := set $cc "auth_type" $client.authType }}
+{{- end }}
+{{- if $client.oauthConfigId }}
+{{- $_ := set $cc "oauth_config_id" $client.oauthConfigId }}
+{{- end }}
+{{- if hasKey $client "isPingAvailable" }}
+{{- $_ := set $cc "is_ping_available" $client.isPingAvailable }}
+{{- end }}
+{{- if $client.clientId }}
+{{- $_ := set $cc "client_id" $client.clientId }}
+{{- end }}
+{{- if hasKey $client "isCodeModeClient" }}
+{{- $_ := set $cc "is_code_mode_client" $client.isCodeModeClient }}
+{{- end }}
+{{- if $client.toolSyncInterval }}
+{{- $_ := set $cc "tool_sync_interval" $client.toolSyncInterval }}
+{{- end }}
+{{- if $client.toolPricing }}
+{{- $_ := set $cc "tool_pricing" $client.toolPricing }}
+{{- end }}
+{{- $clientConfigs = append $clientConfigs $cc }}
+{{- end }}
+{{- $mcpConfig := dict "client_configs" $clientConfigs }}
 {{- if .Values.bifrost.mcp.toolManagerConfig }}
 {{- $tmConfig := dict }}
 {{- if .Values.bifrost.mcp.toolManagerConfig.toolExecutionTimeout }}
@@ -561,9 +735,15 @@ false
 {{- if .Values.bifrost.mcp.toolManagerConfig.maxAgentDepth }}
 {{- $_ := set $tmConfig "max_agent_depth" .Values.bifrost.mcp.toolManagerConfig.maxAgentDepth }}
 {{- end }}
+{{- if .Values.bifrost.mcp.toolManagerConfig.codeModeBindingLevel }}
+{{- $_ := set $tmConfig "code_mode_binding_level" .Values.bifrost.mcp.toolManagerConfig.codeModeBindingLevel }}
+{{- end }}
 {{- if $tmConfig }}
 {{- $_ := set $mcpConfig "tool_manager_config" $tmConfig }}
 {{- end }}
+{{- end }}
+{{- if .Values.bifrost.mcp.toolSyncInterval }}
+{{- $_ := set $mcpConfig "tool_sync_interval" .Values.bifrost.mcp.toolSyncInterval }}
 {{- end }}
 {{- $_ := set $config "mcp" $mcpConfig }}
 {{- end }}
@@ -579,6 +759,12 @@ false
 {{- $governanceConfig := dict }}
 {{- if hasKey .Values.bifrost.plugins.governance.config "is_vk_mandatory" }}
 {{- $_ := set $governanceConfig "is_vk_mandatory" .Values.bifrost.plugins.governance.config.is_vk_mandatory }}
+{{- end }}
+{{- if .Values.bifrost.plugins.governance.config.required_headers }}
+{{- $_ := set $governanceConfig "required_headers" .Values.bifrost.plugins.governance.config.required_headers }}
+{{- end }}
+{{- if hasKey .Values.bifrost.plugins.governance.config "is_enterprise" }}
+{{- $_ := set $governanceConfig "is_enterprise" .Values.bifrost.plugins.governance.config.is_enterprise }}
 {{- end }}
 {{- $plugins = append $plugins (dict "enabled" true "name" "governance" "config" $governanceConfig) }}
 {{- end }}
@@ -597,6 +783,11 @@ false
 {{- if .Values.bifrost.plugins.semanticCache.enabled }}
 {{- $scConfig := dict }}
 {{- $inputConfig := .Values.bifrost.plugins.semanticCache.config | default dict }}
+{{- if $inputConfig.dimension }}
+{{- $_ := set $scConfig "dimension" $inputConfig.dimension }}
+{{- end }}
+{{/* Only include embedding provider config when not in direct cache mode (dimension: 1) */}}
+{{- if ne (int ($inputConfig.dimension | default 1536)) 1 }}
 {{- if $inputConfig.provider }}
 {{- $_ := set $scConfig "provider" $inputConfig.provider }}
 {{- end }}
@@ -606,8 +797,6 @@ false
 {{- if $inputConfig.embedding_model }}
 {{- $_ := set $scConfig "embedding_model" $inputConfig.embedding_model }}
 {{- end }}
-{{- if $inputConfig.dimension }}
-{{- $_ := set $scConfig "dimension" $inputConfig.dimension }}
 {{- end }}
 {{- if $inputConfig.threshold }}
 {{- $_ := set $scConfig "threshold" $inputConfig.threshold }}
@@ -617,6 +806,9 @@ false
 {{- end }}
 {{- if $inputConfig.vector_store_namespace }}
 {{- $_ := set $scConfig "vector_store_namespace" $inputConfig.vector_store_namespace }}
+{{- end }}
+{{- if $inputConfig.default_cache_key }}
+{{- $_ := set $scConfig "default_cache_key" $inputConfig.default_cache_key }}
 {{- end }}
 {{- if hasKey $inputConfig "conversation_history_threshold" }}
 {{- $_ := set $scConfig "conversation_history_threshold" $inputConfig.conversation_history_threshold }}
@@ -633,7 +825,7 @@ false
 {{- if hasKey $inputConfig "cleanup_on_shutdown" }}
 {{- $_ := set $scConfig "cleanup_on_shutdown" $inputConfig.cleanup_on_shutdown }}
 {{- end }}
-{{- $plugins = append $plugins (dict "enabled" true "name" "semanticcache" "config" $scConfig) }}
+{{- $plugins = append $plugins (dict "enabled" true "name" "semantic_cache" "config" $scConfig) }}
 {{- end }}
 {{- if .Values.bifrost.plugins.otel.enabled }}
 {{- $otelConfig := dict }}
@@ -649,6 +841,24 @@ false
 {{- end }}
 {{- if $inputConfig.protocol }}
 {{- $_ := set $otelConfig "protocol" $inputConfig.protocol }}
+{{- end }}
+{{- if hasKey $inputConfig "metrics_enabled" }}
+{{- $_ := set $otelConfig "metrics_enabled" $inputConfig.metrics_enabled }}
+{{- end }}
+{{- if $inputConfig.metrics_endpoint }}
+{{- $_ := set $otelConfig "metrics_endpoint" $inputConfig.metrics_endpoint }}
+{{- end }}
+{{- if $inputConfig.metrics_push_interval }}
+{{- $_ := set $otelConfig "metrics_push_interval" $inputConfig.metrics_push_interval }}
+{{- end }}
+{{- if $inputConfig.headers }}
+{{- $_ := set $otelConfig "headers" $inputConfig.headers }}
+{{- end }}
+{{- if $inputConfig.tls_ca_cert }}
+{{- $_ := set $otelConfig "tls_ca_cert" $inputConfig.tls_ca_cert }}
+{{- end }}
+{{- if hasKey $inputConfig "insecure" }}
+{{- $_ := set $otelConfig "insecure" $inputConfig.insecure }}
 {{- end }}
 {{- $plugins = append $plugins (dict "enabled" true "name" "otel" "config" $otelConfig) }}
 {{- end }}
@@ -678,13 +888,13 @@ false
 {{- /* Custom plugins */ -}}
 {{- if .Values.bifrost.plugins.custom }}
 {{- range .Values.bifrost.plugins.custom }}
-{{- if .enabled }}
-{{- $customPlugin := dict "enabled" true "name" .name }}
+{{- $customPlugin := dict "enabled" .enabled "name" .name }}
 {{- if .path }}{{- $_ := set $customPlugin "path" .path }}{{- end }}
 {{- if .version }}{{- $_ := set $customPlugin "version" .version }}{{- end }}
 {{- if .config }}{{- $_ := set $customPlugin "config" .config }}{{- end }}
+{{- if .placement }}{{- $_ := set $customPlugin "placement" .placement }}{{- end }}
+{{- if .order }}{{- $_ := set $customPlugin "order" (.order | int) }}{{- end }}
 {{- $plugins = append $plugins $customPlugin }}
-{{- end }}
 {{- end }}
 {{- end }}
 {{- if $plugins }}
@@ -705,3 +915,289 @@ false
 {{- end }}
 {{- $config | toJson }}
 {{- end }}
+
+{{/*
+Validation template - validates required fields from config.schema.json
+Call this template at the beginning of deployment/stateful templates
+*/}}
+{{- define "bifrost.validate" -}}
+
+{{/* Validate semantic cache plugin when enabled */}}
+{{- if .Values.bifrost.plugins.semanticCache.enabled }}
+{{/* When dimension is 1, direct (hash-based) caching is used — provider and keys are not required. */}}
+{{- if ne (int .Values.bifrost.plugins.semanticCache.config.dimension) 1 }}
+{{- if not .Values.bifrost.plugins.semanticCache.config.provider }}
+{{- fail "ERROR: bifrost.plugins.semanticCache.config.provider is required for semantic caching. Supported providers: openai, anthropic, gemini, bedrock, azure, cohere, mistral, groq, ollama, openrouter, vertex, cerebras, parasail, perplexity, sgl, huggingface. For direct (hash-based) caching, set dimension: 1." }}
+{{- end }}
+{{- if not .Values.bifrost.plugins.semanticCache.config.keys }}
+{{- fail "ERROR: bifrost.plugins.semanticCache.config.keys is required for semantic caching. Provide at least one API key for the embedding provider. For direct (hash-based) caching, set dimension: 1." }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{/* Validate OTEL plugin when enabled */}}
+{{- if .Values.bifrost.plugins.otel.enabled }}
+{{- if not .Values.bifrost.plugins.otel.config.collector_url }}
+{{- fail "ERROR: bifrost.plugins.otel.config.collector_url is required when OTEL plugin is enabled. Provide the URL of your OpenTelemetry collector." }}
+{{- end }}
+{{- if not .Values.bifrost.plugins.otel.config.trace_type }}
+{{- fail "ERROR: bifrost.plugins.otel.config.trace_type is required when OTEL plugin is enabled. Supported value: otel" }}
+{{- end }}
+{{- if not .Values.bifrost.plugins.otel.config.protocol }}
+{{- fail "ERROR: bifrost.plugins.otel.config.protocol is required when OTEL plugin is enabled. Supported values: http, grpc" }}
+{{- end }}
+{{- end }}
+
+{{/* Validate Maxim plugin when enabled */}}
+{{- if .Values.bifrost.plugins.maxim.enabled }}
+{{- if and (not .Values.bifrost.plugins.maxim.config.api_key) (not .Values.bifrost.plugins.maxim.secretRef.name) }}
+{{- fail "ERROR: bifrost.plugins.maxim.config.api_key or bifrost.plugins.maxim.secretRef.name is required when Maxim plugin is enabled." }}
+{{- end }}
+{{- end }}
+
+{{/* Validate SAML/Okta config when enabled */}}
+{{- if and .Values.bifrost.saml .Values.bifrost.saml.enabled }}
+{{- if eq .Values.bifrost.saml.provider "okta" }}
+{{- if not .Values.bifrost.saml.config.issuerUrl }}
+{{- fail "ERROR: bifrost.saml.config.issuerUrl is required when SAML provider is Okta. Example: https://your-domain.okta.com/oauth2/default" }}
+{{- end }}
+{{- if not .Values.bifrost.saml.config.clientId }}
+{{- fail "ERROR: bifrost.saml.config.clientId is required when SAML provider is Okta." }}
+{{- end }}
+{{- end }}
+{{- if eq .Values.bifrost.saml.provider "entra" }}
+{{- if not .Values.bifrost.saml.config.tenantId }}
+{{- fail "ERROR: bifrost.saml.config.tenantId is required when SAML provider is Entra (Azure AD)." }}
+{{- end }}
+{{- if not .Values.bifrost.saml.config.clientId }}
+{{- fail "ERROR: bifrost.saml.config.clientId is required when SAML provider is Entra (Azure AD)." }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{/* Validate cluster config when enabled */}}
+{{- if and .Values.bifrost.cluster .Values.bifrost.cluster.enabled }}
+{{- if not .Values.bifrost.cluster.gossip }}
+{{- fail "ERROR: bifrost.cluster.gossip is required when cluster mode is enabled." }}
+{{- end }}
+{{- if not .Values.bifrost.cluster.gossip.port }}
+{{- fail "ERROR: bifrost.cluster.gossip.port is required when cluster mode is enabled." }}
+{{- end }}
+{{- if not .Values.bifrost.cluster.gossip.config }}
+{{- fail "ERROR: bifrost.cluster.gossip.config is required when cluster mode is enabled." }}
+{{- end }}
+{{- if not .Values.bifrost.cluster.gossip.config.timeoutSeconds }}
+{{- fail "ERROR: bifrost.cluster.gossip.config.timeoutSeconds is required when cluster mode is enabled." }}
+{{- end }}
+{{- if not .Values.bifrost.cluster.gossip.config.successThreshold }}
+{{- fail "ERROR: bifrost.cluster.gossip.config.successThreshold is required when cluster mode is enabled." }}
+{{- end }}
+{{- if not .Values.bifrost.cluster.gossip.config.failureThreshold }}
+{{- fail "ERROR: bifrost.cluster.gossip.config.failureThreshold is required when cluster mode is enabled." }}
+{{- end }}
+{{- if and .Values.bifrost.cluster.discovery .Values.bifrost.cluster.discovery.enabled }}
+{{- if not .Values.bifrost.cluster.discovery.type }}
+{{- fail "ERROR: bifrost.cluster.discovery.type is required when cluster discovery is enabled. Supported types: kubernetes, dns, udp, consul, etcd, mdns" }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{/* Validate external Weaviate when vector store type is weaviate */}}
+{{- if and .Values.vectorStore.enabled (eq .Values.vectorStore.type "weaviate") }}
+{{- if .Values.vectorStore.weaviate.external.enabled }}
+{{- if not .Values.vectorStore.weaviate.external.scheme }}
+{{- fail "ERROR: vectorStore.weaviate.external.scheme is required when using external Weaviate. Values: http or https" }}
+{{- end }}
+{{- if not .Values.vectorStore.weaviate.external.host }}
+{{- fail "ERROR: vectorStore.weaviate.external.host is required when using external Weaviate." }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{/* Validate external Redis when vector store type is redis */}}
+{{- if and .Values.vectorStore.enabled (eq .Values.vectorStore.type "redis") }}
+{{- if .Values.vectorStore.redis.external.enabled }}
+{{- if not .Values.vectorStore.redis.external.host }}
+{{- fail "ERROR: vectorStore.redis.external.host is required when using external Redis." }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{/* Validate external Qdrant when vector store type is qdrant */}}
+{{- if and .Values.vectorStore.enabled (eq .Values.vectorStore.type "qdrant") }}
+{{- if .Values.vectorStore.qdrant.external.enabled }}
+{{- if not .Values.vectorStore.qdrant.external.host }}
+{{- fail "ERROR: vectorStore.qdrant.external.host is required when using external Qdrant." }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{/* Validate external PostgreSQL when enabled */}}
+{{- if .Values.postgresql.external.enabled }}
+{{- if not .Values.postgresql.external.host }}
+{{- fail "ERROR: postgresql.external.host is required when using external PostgreSQL." }}
+{{- end }}
+{{- if not .Values.postgresql.external.database }}
+{{- fail "ERROR: postgresql.external.database is required when using external PostgreSQL." }}
+{{- end }}
+{{- if not .Values.postgresql.external.user }}
+{{- fail "ERROR: postgresql.external.user is required when using external PostgreSQL." }}
+{{- end }}
+{{- if not .Values.postgresql.external.sslMode }}
+{{- fail "ERROR: postgresql.external.sslMode is required when using external PostgreSQL. Values: disable, allow, prefer, require, verify-ca, verify-full" }}
+{{- end }}
+{{- end }}
+
+{{/* Validate governance budgets */}}
+{{- if .Values.bifrost.governance.budgets }}
+{{- range $idx, $budget := .Values.bifrost.governance.budgets }}
+{{- if not $budget.id }}
+{{- fail (printf "ERROR: bifrost.governance.budgets[%d].id is required." $idx) }}
+{{- end }}
+{{- if not $budget.max_limit }}
+{{- fail (printf "ERROR: bifrost.governance.budgets[%d].max_limit is required for budget '%s'." $idx $budget.id) }}
+{{- end }}
+{{- if not $budget.reset_duration }}
+{{- fail (printf "ERROR: bifrost.governance.budgets[%d].reset_duration is required for budget '%s'. Example values: 30s, 5m, 1h, 1d, 1w, 1M, 1Y" $idx $budget.id) }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{/* Validate governance rate limits */}}
+{{- if .Values.bifrost.governance.rateLimits }}
+{{- range $idx, $rl := .Values.bifrost.governance.rateLimits }}
+{{- if not $rl.id }}
+{{- fail (printf "ERROR: bifrost.governance.rateLimits[%d].id is required." $idx) }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{/* Validate governance customers */}}
+{{- if .Values.bifrost.governance.customers }}
+{{- range $idx, $customer := .Values.bifrost.governance.customers }}
+{{- if not $customer.id }}
+{{- fail (printf "ERROR: bifrost.governance.customers[%d].id is required." $idx) }}
+{{- end }}
+{{- if not $customer.name }}
+{{- fail (printf "ERROR: bifrost.governance.customers[%d].name is required for customer '%s'." $idx $customer.id) }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{/* Validate governance teams */}}
+{{- if .Values.bifrost.governance.teams }}
+{{- range $idx, $team := .Values.bifrost.governance.teams }}
+{{- if not $team.id }}
+{{- fail (printf "ERROR: bifrost.governance.teams[%d].id is required." $idx) }}
+{{- end }}
+{{- if not $team.name }}
+{{- fail (printf "ERROR: bifrost.governance.teams[%d].name is required for team '%s'." $idx $team.id) }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{/* Validate governance virtual keys */}}
+{{- if .Values.bifrost.governance.virtualKeys }}
+{{- range $idx, $vk := .Values.bifrost.governance.virtualKeys }}
+{{- if not $vk.id }}
+{{- fail (printf "ERROR: bifrost.governance.virtualKeys[%d].id is required." $idx) }}
+{{- end }}
+{{- if not $vk.name }}
+{{- fail (printf "ERROR: bifrost.governance.virtualKeys[%d].name is required for virtual key '%s'." $idx $vk.id) }}
+{{- end }}
+{{- if not $vk.value }}
+{{- fail (printf "ERROR: bifrost.governance.virtualKeys[%d].value is required for virtual key '%s'." $idx $vk.id) }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{/* Validate guardrails rules */}}
+{{- if .Values.bifrost.guardrails.rules }}
+{{- range $idx, $rule := .Values.bifrost.guardrails.rules }}
+{{- if not $rule.id }}
+{{- fail (printf "ERROR: bifrost.guardrails.rules[%d].id is required." $idx) }}
+{{- end }}
+{{- if not $rule.name }}
+{{- fail (printf "ERROR: bifrost.guardrails.rules[%d].name is required for rule id '%v'." $idx $rule.id) }}
+{{- end }}
+{{- if not (hasKey $rule "enabled") }}
+{{- fail (printf "ERROR: bifrost.guardrails.rules[%d].enabled is required for rule '%s'." $idx $rule.name) }}
+{{- end }}
+{{- if not $rule.cel_expression }}
+{{- fail (printf "ERROR: bifrost.guardrails.rules[%d].cel_expression is required for rule '%s'." $idx $rule.name) }}
+{{- end }}
+{{- if not $rule.apply_to }}
+{{- fail (printf "ERROR: bifrost.guardrails.rules[%d].apply_to is required for rule '%s'. Values: input, output, both" $idx $rule.name) }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{/* Validate guardrails providers */}}
+{{- if .Values.bifrost.guardrails.providers }}
+{{- range $idx, $provider := .Values.bifrost.guardrails.providers }}
+{{- if not $provider.id }}
+{{- fail (printf "ERROR: bifrost.guardrails.providers[%d].id is required." $idx) }}
+{{- end }}
+{{- if not $provider.provider_name }}
+{{- fail (printf "ERROR: bifrost.guardrails.providers[%d].provider_name is required for provider id '%v'." $idx $provider.id) }}
+{{- end }}
+{{- if not $provider.policy_name }}
+{{- fail (printf "ERROR: bifrost.guardrails.providers[%d].policy_name is required for provider '%s'." $idx $provider.provider_name) }}
+{{- end }}
+{{- if not (hasKey $provider "enabled") }}
+{{- fail (printf "ERROR: bifrost.guardrails.providers[%d].enabled is required for provider '%s'." $idx $provider.provider_name) }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{/* Validate MCP client configs when MCP is enabled */}}
+{{- if .Values.bifrost.mcp.enabled }}
+{{- if .Values.bifrost.mcp.clientConfigs }}
+{{- range $idx, $client := .Values.bifrost.mcp.clientConfigs }}
+{{- if not $client.name }}
+{{- fail (printf "ERROR: bifrost.mcp.clientConfigs[%d].name is required." $idx) }}
+{{- end }}
+{{- if not $client.connectionType }}
+{{- fail (printf "ERROR: bifrost.mcp.clientConfigs[%d].connectionType is required for client '%s'. Values: stdio, websocket, http" $idx $client.name) }}
+{{- end }}
+{{- if eq $client.connectionType "stdio" }}
+{{- if not $client.stdioConfig }}
+{{- fail (printf "ERROR: bifrost.mcp.clientConfigs[%d].stdioConfig is required when connectionType is 'stdio' for client '%s'." $idx $client.name) }}
+{{- end }}
+{{- if not $client.stdioConfig.command }}
+{{- fail (printf "ERROR: bifrost.mcp.clientConfigs[%d].stdioConfig.command is required for client '%s'." $idx $client.name) }}
+{{- end }}
+{{- end }}
+{{- if eq $client.connectionType "websocket" }}
+{{- if not $client.websocketConfig }}
+{{- fail (printf "ERROR: bifrost.mcp.clientConfigs[%d].websocketConfig is required when connectionType is 'websocket' for client '%s'." $idx $client.name) }}
+{{- end }}
+{{- if not $client.websocketConfig.url }}
+{{- fail (printf "ERROR: bifrost.mcp.clientConfigs[%d].websocketConfig.url is required for client '%s'." $idx $client.name) }}
+{{- end }}
+{{- end }}
+{{- if eq $client.connectionType "http" }}
+{{- if not $client.httpConfig }}
+{{- fail (printf "ERROR: bifrost.mcp.clientConfigs[%d].httpConfig is required when connectionType is 'http' for client '%s'." $idx $client.name) }}
+{{- end }}
+{{- if not $client.httpConfig.url }}
+{{- fail (printf "ERROR: bifrost.mcp.clientConfigs[%d].httpConfig.url is required for client '%s'." $idx $client.name) }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{/* Validate custom plugins */}}
+{{- if .Values.bifrost.plugins.custom }}
+{{- range $idx, $plugin := .Values.bifrost.plugins.custom }}
+{{- if not $plugin.name }}
+{{- fail (printf "ERROR: bifrost.plugins.custom[%d].name is required." $idx) }}
+{{- end }}
+{{- if not (hasKey $plugin "enabled") }}
+{{- fail (printf "ERROR: bifrost.plugins.custom[%d].enabled is required for plugin '%s'." $idx $plugin.name) }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{- end -}}
